@@ -184,6 +184,7 @@ exports.getResultByClassId = async (req, res) => {
         model: Exam,
         select: 'examName',
       });
+      console.log("Response of results",results)
 
     // Check if results exist
     if (results.length === 0) {
@@ -192,6 +193,7 @@ exports.getResultByClassId = async (req, res) => {
 
     // Return the results as JSON response
     return res.json({ data: results });
+   
   } catch (error) {
     // Handle errors
     console.error('Error fetching results by classId:', error);
