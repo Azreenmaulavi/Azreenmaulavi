@@ -134,7 +134,7 @@ exports.getUser = async (req, res) => {
 exports.getone = async (req, res) => {
   try {
     const { id } = req.params.id;
-    const user = await User.find({ user:id }).populate('StudClass', 'className'); // Populate the 'StudClass' field with 'className'
+    const user = await User.findOne({ user:id }).populate('StudClass', 'className'); // Populate the 'StudClass' field with 'className'
 
     if (!user) {
       return res.json({ status: false, message: "User not found" });

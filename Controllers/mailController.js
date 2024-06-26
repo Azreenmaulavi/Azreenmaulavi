@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
 const User = require("../Models/userModel");
+const otpGenerator = require("otp-generator"); 
 
 dotenv.config();
 
@@ -100,5 +101,61 @@ exports.sendEmail1 = async (user) => {
   } catch (error) {
     console.error('Error sending email:', error);
     throw new Error('Failed to send email');
+  }
+};
+
+
+// Send OTP
+// Function to send OTP to user's email
+exports.sendOTP = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if user exists with the provided email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      console.error(`User with email ${email} not found`);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate OTP using otp-generator
+    const OTP = otpGenerator.generate(6, { upperCase: false, specialChars: false });
+
+    // Save OTP to the user document (optional step)
+    user.otp = OTP;
+    await user.save();
+
+    // Create transporter using Nodemailer
+    const transporter = nodemailer.createTransport({
+      host: process.env.HOST,
+      port: process.env.MAIL_PORT,
+      secure: false, // true for 465, false for other ports
+      requireTLS: true,
+      auth: {
+        user: process.env.USER,
+        pass: process.env.PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    // Email content (HTML format)
+    const mailOptions = {
+      from: process.env.USER, // Sender address
+      to: email, // List of receivers
+      subject: 'OTP Verification', // Subject line
+      html: `<p>Your OTP for verification is: <strong>${OTP}</strong></p>`
+    };
+
+    // Send email using async/await
+    const info = await transporter.sendMail(mailOptions);
+    console.log('OTP sent:', info.response);
+    res.json({ message: 'OTP sent successfully' });
+
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ message: 'Failed to send OTP' });
   }
 };

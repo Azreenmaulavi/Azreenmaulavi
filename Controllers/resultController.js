@@ -184,7 +184,7 @@ exports.getResultByClassId = async (req, res) => {
         model: Exam,
         select: 'examName',
       });
-      console.log("Response of results",results)
+    
 
     // Check if results exist
     if (results.length === 0) {

@@ -14,6 +14,7 @@ exports.adminsignin = async (req, res) => {
           res.cookie("token", token, { expiresIn: "1d" });
           res.status(200).json({
             token,
+            userId: _id,
             user: {
               _id,
               username,
@@ -61,3 +62,58 @@ exports.adminsignup = async (req, res) => {
     res.status(500).json({ err: err });
   }
 };
+
+
+// Method to fetch admin details by ID
+exports.fetchAdminDetails = async (req, res) => {
+  try {
+    const { adminId } = req.params; // Assuming you pass adminId in the URL params
+    const admin = await User.findById(adminId);
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+    // Return admin details
+    const { _id, username, role } = admin;
+    res.status(200).json({
+      _id,
+      username,
+      role,
+    });
+  } catch (error) {
+    console.error('Error fetching admin details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+// otpController.js
+
+
+
+exports.verifyOTP = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if OTP matches
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // Clear OTP
+    user.otp = null;
+    await user.save();
+
+    res.json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ message: 'Failed to verify OTP' });
+  }
+};
+
