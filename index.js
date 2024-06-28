@@ -16,6 +16,7 @@ const ansRout = require("./Routes/studentAnsRoute");
 const scholarshipRout = require("./Routes/scholarshipRoute");
 const examRegistrationRout = require("./Routes/examRegistrationRout");
 const userRout = require("./Routes/userRoute");
+const paymentRoutes = require('./Routes/paymentRoute');
 const path = require('path');
 
 connectDB(); // Connect to the database
@@ -40,6 +41,7 @@ app.use("/api", ansRout);
 app.use("/api", scholarshipRout);
 app.use("/api", examRegistrationRout);
 app.use("/api", userRout);
+app.use("/api", paymentRoutes);
 
 app.get("/", (req, res) => {
   return res.send("Welcome To Ashraf's Server");

@@ -2,10 +2,10 @@ const express = require("express");
 const router = express.Router();
 
 // Route to get all exam registrations
-router.get(
-  "/examRegister/all",
- require("../Controllers/examRegisterController").saveExamRegistration
-);
+// router.get(
+//   "/examRegister/all",
+//  require("../Controllers/examRegisterController").saveExamRegistration
+// );
 
 // Route to get exam registration by ID
 router.get(
@@ -17,6 +17,9 @@ router.get(
   "/getExam/:examId",
   require("../Controllers/examRegisterController").getExamRegistrationByExamId
 );
+
+
+router.get("/getRegisteredExamDetails/:userId", require("../Controllers/examRegisterController").getRegisteredExamDetailsByUserId)
 
 // Route to save exam registration data
 router.post(

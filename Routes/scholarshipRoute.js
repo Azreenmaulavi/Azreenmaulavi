@@ -15,7 +15,7 @@ router.get(
 
 router.post(
   '/result/sendEmail/:studentId',
-  require("../Controllers/mailController").sendEmail
+  require("../Controllers/mailController").sendScholarshipEmail
 )
 // router.get(
 //   "/scholarship/get/:id",
