@@ -343,3 +343,23 @@ exports.getSingleResult = async (req, res) => {
     res.json({ status: false, message: "data not Fetched", err: err });
   }
 };
+
+
+exports.getResultByStudentid = async (req, res) => {
+  const studentId = req.params.studentId 
+
+  if (!studentId) {
+    return res.status(400).json({ status: false, message: "Student ID is required" });
+  }
+
+  try {
+    const Results = await Result.find({ studentId }).populate("examId");
+    res.json({
+      status: true,
+      message: "Results fetched successfully",
+      data: Results,
+    });
+  } catch (err) {
+    res.status(500).json({ status: false, message: "Failed to fetch Results", err });
+  }
+};

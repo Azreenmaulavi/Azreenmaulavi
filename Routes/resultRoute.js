@@ -21,6 +21,11 @@ router.get(
   "/result/exam/:examId",
   require("../Controllers/resultController").getResultsByExam
 );
+
+router.get(
+  "/result/getResultByStudentid/:studentId",
+  require("../Controllers/resultController").getResultByStudentid
+);
 // router.get(
 //   "/result/set/:setId",
 //   require("../Controllers/resultController").getResultsBySet
