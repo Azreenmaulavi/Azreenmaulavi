@@ -93,18 +93,25 @@ exports.getExamByClass = async (req, res) => {
     const classId = req.params.classId;
     console.log("classId: ", classId);
 
-    const exams = await examModel.find({ classId: classId }); // Use classId to filter exams
+    const exams = await examModel.find({ classId: classId });
 
     res.json({
       status: true,
       message: "Exams fetched successfully",
-      data: exams,
+      data: exams.map(exam => ({
+        _id: exam._id,
+        examName: exam.examName,
+        amount: exam.amount,
+        isPaid: exam.isPaid
+      })),
     });
   } catch (err) {
     console.error("Error fetching Exams:", err);
     res.status(500).json({ status: false, message: "Failed to fetch Exams", error: err.message });
   }
 };
+
+
 
 exports.getExamNamesByStudentId = async (req, res) => {
   try {

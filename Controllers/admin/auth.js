@@ -1,7 +1,7 @@
 const User = require("../../Models/userModel");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const {sendEmail1 } = require('../../Controllers/mailController'); 
+const {sendSignupEmail } = require('../../Controllers/mailController'); 
 const fs = require('fs');
 const path = require('path');
 
@@ -70,7 +70,7 @@ exports.signup = async (req, res) => {
     });
     console.log(_user);
     await _user.save();
-    await sendEmail1(_user);
+    await sendSignupEmail(_user);
 
     res.status(201).json({ message: "Signup successful!" });
   } catch (err) {

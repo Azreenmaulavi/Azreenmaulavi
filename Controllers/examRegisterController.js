@@ -2,29 +2,39 @@ const nodemailer = require("nodemailer");
 const ExamRegister = require("../Models/examRegisterModel");
 const Exam = require("../Models/examModel");
 
+const {sendExamMail}=require("../Controllers/mailController")
+
 // Function to generate a random 7-digit code
-function generateExamCode() {
+const generateExamCode = () => {
   return Math.floor(1000000 + Math.random() * 9000000).toString();
-}
+};
 
 // Controller to save exam registration data and send email
 exports.saveExamRegistration = async (req, res) => {
   try {
     const { studentId, classId, examId, name, email } = req.body;
+  
 
     // Validate required fields
     if (!studentId || !classId || !examId || !name || !email) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
+    // Fetch exam details to check if it's paid
+    const exams = await Exam.find({ _id: { $in: examId } });
+    if (!exams || exams.length === 0) {
+      return res.status(404).json({ error: "Exam not found." });
+    }
+
+    // Assuming one exam per request for simplicity
+    const exam = exams[0];
+
     // Generate a random 7-digit exam code
     const examCode = generateExamCode();
 
     // Calculate expiration date (1 day from now)
     const expirationDate = new Date();
-
     expirationDate.setHours(expirationDate.getHours() + 1);
-    // expirationDate.setMinutes(expirationDate.getMinutes() + 1);
 
     const day = String(expirationDate.getDate()).padStart(2, "0");
     const month = String(expirationDate.getMonth() + 1).padStart(2, "0");
@@ -35,75 +45,55 @@ exports.saveExamRegistration = async (req, res) => {
 
     const formattedDate = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 
-    const exams = await Exam.find({ _id: { $in: examId } }).populate(
-      "examName"
-    );
-
-    const examName = exams.map((exam) => exam.examName);
-
     // Create a new exam registration object
     const examRegistration = new ExamRegister({
       studentId,
       classId,
-      examId,
+      examId: exam._id,
       examCode,
       name,
       email,
       examCodeExpiration: expirationDate,
+      formattedDate,
+      examName: exam.examName,
     });
 
     // Save the exam registration data to the database
     const savedExamRegistration = await examRegistration.save();
 
-    // Configure email transporter
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: {
-        user: "jjhon0461@gmail.com",
-        pass: "ozez dxtm ijet kklm",
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    if (exam.isPaid) {
+      // Redirect to payment page
+      return res.status(201).json({
+        message: "Exam is paid. Redirect to payment page.",
+        data: savedExamRegistration,
+        paymentRequired: true,
+      });
+    } else {
+      // Send email for unpaid exam
+      await sendExamMail({
+        email,
+        examName: exam.examName,
+        examCode,
+        formattedDate,
+        name,
+      });
 
-    // Email message
-    const mailOptions = {
-      from: "jjhon0461@gmail.com",
-      to: email,
-      subject: "Exam Registration Confirmation",
-      html: `
-        <p>Dear ${name},</p>
-        <p>You have successfully registered for the exam.</p>
-        <p>Details:</p>
-        <ul>
-          <li style="color:magenta">Exam Name: ${examName}</li>
-          <li style="color:magenta">Exam Code: ${examCode}</li>
-        </ul>
-        <p>Please use this exam code before ${formattedDate}.</p>
-        <p>Thank you!</p>
-      `,
-    };
-
-    // Send email
-    await transporter.sendMail(mailOptions);
-
-    res.status(201).json({
-      message: "Exam registration saved successfully and email sent",
-      data: savedExamRegistration,
-    });
+      return res.status(201).json({
+        message: "Exam registration saved successfully and email sent",
+        data: savedExamRegistration,
+        paymentRequired: false,
+      });
+    }
   } catch (error) {
     console.error("Error saving exam registration and sending email:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
 // Controller to get exam registration by ID
 exports.getExamRegistrationById = async (req, res) => {
   const studentId = req.params.studentId;
+  // console.log(("student id",studentId))
   try {
     const examRegistrations = await ExamRegister.find({ studentId, isExamCompleted: false });
 
@@ -230,3 +220,100 @@ exports.getExamRegistrationByExamId = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+//used for payment of exam
+exports.getRegisteredExamDetailsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log("Received userId:", userId);
+
+    // Fetch exam registration details using userId
+    const examRegistration = await ExamRegister.findOne({ studentId: userId });
+    console.log("Fetched examRegistration:", examRegistration);
+
+    if (!examRegistration) {
+      return res.status(404).json({ error: "Exam registration details not found." });
+    }
+
+    // Fetch exam details using examId from the registration details
+    const examDetails = await Exam.findById(examRegistration.examId);
+    // console.log("Fetched examDetails:", examDetails);
+
+    if (!examDetails) {
+      return res.status(404).json({ error: "Exam details not found." });
+    }
+
+    // Combine necessary details
+    const result = {
+      userName: examRegistration.name,
+      email: examRegistration.email,
+      examName: examDetails.examName,
+      amount: examDetails.amount
+    };
+
+    // Return combined details
+    res.status(200).json(result);
+    // console.log(result)
+  } catch (error) {
+    console.error("Error fetching exam details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ // // Configure email transporter
+    // const transporter = nodemailer.createTransport({
+    //   host: "smtp.gmail.com",
+    //   port: 587,
+    //   secure: false,
+    //   requireTLS: true,
+    //   auth: {
+    //     user: "jjhon0461@gmail.com",
+    //     pass: "ozez dxtm ijet kklm",
+    //   },
+    //   tls: {
+    //     rejectUnauthorized: false,
+    //   },
+    // });
+
+    // // Email message
+    // const mailOptions = {
+    //   from: "jjhon0461@gmail.com",
+    //   to: email,
+    //   subject: "Exam Registration Confirmation",
+    //   html: `
+    //     <p>Dear ${name},</p>
+    //     <p>You have successfully registered for the exam.</p>
+    //     <p>Details:</p>
+    //     <ul>
+    //       <li style="color:magenta">Exam Name: ${examName}</li>
+    //       <li style="color:magenta">Exam Code: ${examCode}</li>
+    //     </ul>
+    //     <p>Please use this exam code before ${formattedDate}.</p>
+    //     <p>Thank you!</p>
+    //   `,
+    // };
+
+    // // Send email
+    // await transporter.sendMail(mailOptions);
