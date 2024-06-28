@@ -2,6 +2,8 @@ const User = require("../../Models/userModel");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const {sendEmail1 } = require('../../Controllers/mailController'); 
+const fs = require('fs');
+const path = require('path');
 
 
 exports.signup = async (req, res) => {
@@ -133,25 +135,57 @@ exports.getUser = async (req, res) => {
 
 exports.getone = async (req, res) => {
   try {
-    const { id } = req.params.id;
-    const user = await User.findOne({ user:id }).populate('StudClass', 'className'); // Populate the 'StudClass' field with 'className'
+    const { id } = req.params; // Ensure id is correctly received from request parameters
+
+    if (!id) {
+      return res.status(400).json({ status: false, message: "User ID parameter is missing" });
+    }
+
+    const user = await User.findOne({ id }).populate('StudClass', 'className');
 
     if (!user) {
-      return res.json({ status: false, message: "User not found" });
+      return res.status(404).json({ status: false, message: "User not found" });
     }
-    res.status(200).json(user);
 
-   // Construct the profile picture URL based on your uploads folder structure
-  //  const profilePictureUrl = `${req.protocol}://${req.get('host')}/uploads/${user.profilePicture}`;
+    const profilePicturePath = path.join(__dirname, '..', '..', user.profilePicture.replace(/\\/g, '/'));
 
-  //  res.json({ status: true, message: "Data fetched", data: { ...user.toJSON(), profilePictureUrl } });
-  //  console.log(res)
- } catch (err) {
-   res.json({ status: false, message: "Data not fetched", error: err.message });
- }
+    fs.readFile(profilePicturePath, (err, data) => {
+      if (err) {
+        console.error("Error reading profile picture:", err);
+        return res.status(500).json({ status: false, message: "Error fetching profile picture" });
+      }
+
+      const profilePictureBase64 = data.toString('base64');
+
+      const userData = {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        Contact: user.Contact,
+        StudClass: user.StudClass,
+        Gender: user.Gender,
+        DOB: user.DOB,
+        studentId: user.studentId,
+        role: user.role,
+        profilePicture: profilePictureBase64,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        otp: user.otp
+      };
+
+      res.status(200).json({
+        status: true,
+        message: "Data fetched",
+        data: userData
+      });
+    });
+
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({ status: false, message: "Data not fetched", error: err.message });
+  }
 };
-
-
 exports.deleteuser = (req, res) => {
   User.findOneAndDelete({ _id: req.params.id })
     .then((data) => {
@@ -193,15 +227,20 @@ exports.updateuser = (req, res) => {
  
 
 
+
+
 exports.updatePassword = async (req, res) => {
   console.log(req.body);
   try {
-    const { username, newPassword } = req.body;
+    const { email, newPassword } = req.body;
 
-    const user = await User.findOne({ username }).exec();
+    const user = await User.findOne({ email }).exec();
 
     if (user) {
-      user.password = newPassword;
+      // Hash the new password before saving
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+
       await user.save();
 
       return res.status(200).json({
@@ -215,3 +254,37 @@ exports.updatePassword = async (req, res) => {
     res.status(400).json({ message: "Something went wrong", error: err });
   }
 };
+
+
+
+// otpController.js
+
+
+
+exports.verifyOTP = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    console.log("OTP",user.otp)
+
+    // Check if OTP matches
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // Clear OTP
+    user.otp = null;
+    await user.save();
+
+    res.json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ message: 'Failed to verify OTP' });
+  }
+};
+

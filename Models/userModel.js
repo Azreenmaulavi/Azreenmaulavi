@@ -94,6 +94,7 @@ const UserSchema = new Schema(
     profilePicture: { 
       type: String, default: null 
     },
+    otp: { type: String, default: null }, 
   },
 
   {

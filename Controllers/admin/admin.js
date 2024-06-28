@@ -86,34 +86,38 @@ exports.fetchAdminDetails = async (req, res) => {
 };
 
 
-
-// otpController.js
-
-
-
-exports.verifyOTP = async (req, res) => {
-  const { email, otp } = req.body;
-
+// Controller method to change admin password
+exports.changePassword = async (req, res) => {
   try {
-    const user = await User.findOne({ email });
+    const { adminId } = req.params;
+    const { oldPassword, newPassword } = req.body;
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    // Find admin by ID
+    const admin = await User.findById(adminId);
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
     }
 
-    // Check if OTP matches
-    if (user.otp !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP' });
+    // Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, admin.hash_password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect old password' });
     }
 
-    // Clear OTP
-    user.otp = null;
-    await user.save();
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    res.json({ message: 'OTP verified successfully' });
+    // Update admin's password
+    admin.hash_password = hashedPassword;
+    await admin.save();
+
+    // Return success response
+    res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
-    console.error('Error verifying OTP:', error);
-    res.status(500).json({ message: 'Failed to verify OTP' });
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
 

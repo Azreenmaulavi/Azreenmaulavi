@@ -7,6 +7,8 @@ const examSchema = mongoose.Schema({
     duration: { type: Number }, 
     maxMarks: { type: Number }, 
     isActive: { type: Boolean ,default: true}, 
+    isPaid: { type: Boolean, default: false }, // New field
+    amount: { type: Number, default: 0 },     // New field
 }, { timestamps: true });
 
 module.exports = mongoose.model("exam", examSchema);

@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema(
     username: {type: String,required: true,trim: true,min: 3,max: 20},
     hash_password: {type: String,required: true},
     role: {type: String,default: "admin"},
-    otp: { type: String, default: null }, // Add OTP field
+   
   },
   { timestamps: true }
 );

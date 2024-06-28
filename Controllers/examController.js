@@ -8,6 +8,8 @@ exports.createExam = async (req, res) => {
     duration,
     maxMarks,
     isActive,
+    isPaid,
+    amount,
   } = req.body;
   console.log(duration)
 
@@ -17,6 +19,8 @@ exports.createExam = async (req, res) => {
     duration,
     maxMarks,
     isActive,
+    isPaid,
+    amount,
   });
 
   try {
